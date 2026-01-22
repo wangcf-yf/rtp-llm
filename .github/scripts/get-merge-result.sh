@@ -18,8 +18,8 @@ while true; do
 
     response=$(curl -s  -H "Content-Type: application/json" \
                         -H "Authorization: Basic ${SECURITY}" \
-                        -d "{\"type\": \"RETRIEVE-MERGE-STATUS\", \"commitId\": \"${COMMIT_ID}\"}" "https://get-tasend-back-twkvcdsbpj.cn-hangzhou-vpc.fcapp.run")
-    
+                        -d "{\"type\": \"RETRIEVE-MERGE-STATUS\", \"commitId\": \"${COMMIT_ID}\"}" "https://get-tasback-pre-aiffqmsbgj.cn-hangzhou.fcapp.run")
+
     # 检查curl是否成功
     if [ $? -ne 0 ]; then
         echo "Error: Failed to query merge status"
@@ -31,7 +31,7 @@ while true; do
         echo "Error: Empty response from merge service"
         exit 1
     fi
-    
+
     # 检查是否超时
     CURRENT_TIME=$(date +%s)
     ELAPSED_TIME=$((CURRENT_TIME - START_TIME))
