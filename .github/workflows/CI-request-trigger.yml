@@ -31,7 +31,7 @@ jobs:
 
       # Runs trigger CI
       - name: Make the script files executable
-        run: chmod +x pre-check-CI-result.sh trigger-CI.sh get-CI-result.sh get-branch-info.sh
+        run: chmod +x pre-check-CI-result.sh trigger-CI.sh get-CI-result.sh get-branch-info.sh add-comment.sh
 
       # Pre-check if CI already completed
       - name: Pre-check CI status
