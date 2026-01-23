@@ -33,7 +33,6 @@ add_comment() {
                             -d "{
                                 \"type\": \"ADD-COMMENT\",
                                 \"aone\": {\"projectId\": \"${PROJECT_ID}\"},
-                                \"commitId\": \"dummy\",
                                 \"currentBranch\": \"${CURRENT_BRANCH}\",
                                 \"prId\": \"${PR_ID}\",
                                 \"repository\": \"${REPOSITORY}\",
