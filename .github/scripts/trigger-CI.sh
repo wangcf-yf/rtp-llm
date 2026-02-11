@@ -23,7 +23,7 @@ CURRENT_INTERNAL_COMMITID="UNKNOWN"
 CURRENT_GITHUB_RUN_ID=$5
 
 # Call get-branch-info.sh to get CURRENT_INTERNAL_COMMITID
-BRANCH_INFO=$(sh ./get-branch-info.sh "${BRANCH_NAME}" "${GITHUB_REPOSITORY}")
+BRANCH_INFO=$(sh ./get-branch-info.sh "${BRANCH_NAME}" "${GITHUB_REPOSITORY}" "${GITHUB_RUN_ID}")
 if [ $? -eq 0 ]; then
     CURRENT_INTERNAL_COMMITID=$(echo "$BRANCH_INFO" | jq -r '.commit.id')
 fi

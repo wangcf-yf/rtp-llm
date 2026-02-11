@@ -6,7 +6,8 @@ PR_ID=$2
 REPOSITORY=$3
 COMMENT=$4
 SOURCE=$5
-MAIN_BRANCH=${6:-"main-internal"}  # 默认值为 main-internal
+MAIN_BRANCH=${6:-"main-internal"}
+COMMITID=$7# 默认值为 main-internal
 PROJECT_ID="2654816"
 MAX_RETRIES=5
 RETRY_INTERVAL=5
@@ -36,6 +37,7 @@ add_comment() {
                                 \"currentBranch\": \"${CURRENT_BRANCH}\",
                                 \"prId\": \"${PR_ID}\",
                                 \"repositoryUrl\": \"${REPOSITORY}\",
+                                \"commitId\": \"${COMMITID}\",
                                 \"comment\": \"${COMMENT}\",
                                 \"source\": \"${SOURCE}\",
                                 \"mainBranch\": \"${MAIN_BRANCH}\"
