@@ -19,7 +19,7 @@ jobs:
   # This workflow contains a single job called "build"
   build:
     # The type of runner that the job will run on
-    runs-on: [self-hosted, Linux]
+    runs-on: ${{ fromJSON('["ubuntu-latest", "self-hosted"]')[github.repository == 'github/docs-internal'] }}
     # work on CI script dir
     defaults:
       run:
@@ -64,7 +64,7 @@ jobs:
         run: |
           echo "=== Task started at: $(date '+%Y-%m-%d %H:%M:%S') ==="
           PR_ID=${{ github.event.pull_request.number }}
-          BRANCH_NAME="open_merge/${PR_ID}"
+          BRANCH_NAME="open_merge_pre/${PR_ID}"
           REPOSITORY="${{ github.repository }}"
           COMMENT="internal source has been updated, please review the changes!"
           SOURCE="RTP"
