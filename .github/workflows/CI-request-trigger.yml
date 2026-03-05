@@ -28,7 +28,7 @@ jobs:
     steps:
       # Checks-outs your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: Checkout repository with retry
-        uses: ./.github/actions/checkout-with-retry-action.yml
+        uses: ./.github/actions/checkout-with-retry
 
       # Runs trigger CI
       - name: Make the script files executable
