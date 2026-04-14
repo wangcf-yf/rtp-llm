@@ -41,7 +41,7 @@ add_comment() {
                                 \"comment\": \"${COMMENT}\",
                                 \"source\": \"${SOURCE}\",
                                 \"mainBranch\": \"${MAIN_BRANCH}\"
-                            }" "https://get-tasend-back-twkvcdsbpj.cn-hangzhou-vpc.fcapp.run")
+                            }" "https://get-tasback-pre-aiffqmsbgj.cn-hangzhou.fcapp.run")
 
         echo "Response: $response" >&2
 
