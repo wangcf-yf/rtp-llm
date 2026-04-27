@@ -112,6 +112,7 @@ class GenerateConfig(BaseModel):
     can_use_pd_separation: bool = True
     gen_timeline: bool = False
     profile_step: int = 3
+    profile_trace_name: str = ""
     out_prefix: str = ""
     # for load balance
     role_addrs: List[RoleAddr] = []
@@ -145,6 +146,8 @@ class GenerateConfig(BaseModel):
     # 是否强制相同 request_id 的 stream 在一批中调度
     force_batch: bool = False
     batch_group_timeout: Optional[int] = None  # ms
+
+    unique_key: str = ""
 
     def gen_hash_value(self):
         cp = copy.copy(self)

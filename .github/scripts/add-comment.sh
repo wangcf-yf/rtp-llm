@@ -6,7 +6,7 @@ PR_ID=$2
 REPOSITORY=$3
 COMMENT=$4
 SOURCE=$5
-MAIN_BRANCH=${6:-"main-internal"}  # 默认值为 main-internal
+MAIN_BRANCH=${6:-"main-internal"}
 COMMITID=$7
 PROJECT_ID="2654816"
 MAX_RETRIES=5
@@ -41,7 +41,7 @@ add_comment() {
                                 \"comment\": \"${COMMENT}\",
                                 \"source\": \"${SOURCE}\",
                                 \"mainBranch\": \"${MAIN_BRANCH}\"
-                            }" "https://get-tasend-back-twkvcdsbpj.cn-hangzhou-vpc.fcapp.run")
+                            }" "https://get-tasback-pre-aiffqmsbgj.cn-hangzhou.fcapp.run")
 
         echo "Response: $response" >&2
 

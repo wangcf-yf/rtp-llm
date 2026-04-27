@@ -4,8 +4,10 @@ name: CI Request Trigger
 
 # Controls when the workflow will run
 on:
-  pull_request:
-    branches: [ "main" ]
+  # Trigger CI only after a PR review is submitted (approved)
+  pull_request_review:
+    types: [submitted]
+    branches: ["main"]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -18,8 +20,12 @@ concurrency:
 jobs:
   # This workflow contains a single job called "build"
   build:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request_review' &&
+       github.event.review.state == 'approved')
     # The type of runner that the job will run on
-    runs-on: [self-hosted, Linux]
+    runs-on: ${{ fromJSON('["ubuntu-latest", "self-hosted"]')[github.repository == 'github/docs-internal'] }}
     # work on CI script dir
     defaults:
       run:
@@ -43,19 +49,40 @@ jobs:
         id: checkout3
         uses: actions/checkout@v4
 
+      # Retry checkout (attempt 2)
+      - name: Checkout repository (attempt 2)
+        if: steps.checkout1.outcome == 'failure'
+        id: checkout2
+        continue-on-error: true
+        uses: actions/checkout@v4
+
+      # Final retry (attempt 3)
+      - name: Checkout repository (attempt 3)
+        if: steps.checkout2.outcome == 'failure'
+        id: checkout3
+        uses: actions/checkout@v4
       # Runs trigger CI
       - name: Make the script files executable
-        run: chmod +x pre-check-CI-result.sh trigger-CI.sh get-CI-result.sh get-branch-info.sh add-comment.sh
+        run: chmod +x pre-check-CI-result.sh trigger-CI.sh get-CI-result.sh get-branch-info.sh add-comment.sh check-rebase-freshness.sh
+
+      - name: Check rebase freshness
+        if: github.event_name == 'pull_request_review'
+        run: |
+          COMMIT_ID="${{ github.event.pull_request.head.sha }}"
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          ./check-rebase-freshness.sh "$PR_NUMBER" "$COMMIT_ID" "${{ github.repository }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Pre-check if CI already completed
       - name: Pre-check CI status
         id: pre-check
         run: |
           echo "=== Task started at: $(date '+%Y-%m-%d %H:%M:%S') ==="
-          COMMIT_ID=$([ "${{ github.event_name }}" == "pull_request" ] && echo "${{ github.event.pull_request.head.sha }}" || echo "${{ github.sha }}")
+          COMMIT_ID=$([ "${{ github.event_name }}" == "pull_request_review" ] && echo "${{ github.event.pull_request.head.sha }}" || echo "${{ github.sha }}")
           echo "Pre-checking CI status for Commit ID: $COMMIT_ID"
           
-          if ./pre-check-CI-result.sh "$COMMIT_ID" "${{ secrets.CI_SECRET }}" "${{ github.repository }}"; then
+          if ./pre-check-CI-result.sh "$COMMIT_ID" "${{ secrets.CI_SECRET }}"; then
             echo "skip_ci=true" >> $GITHUB_OUTPUT
             echo "CI already completed, will skip trigger"
           else
@@ -66,7 +93,7 @@ jobs:
         if: steps.pre-check.outputs.skip_ci != 'true'
         run: |
           echo "=== Task started at: $(date '+%Y-%m-%d %H:%M:%S') ==="
-          COMMIT_ID=$([ "${{ github.event_name }}" == "pull_request" ] && echo "${{ github.event.pull_request.head.sha }}" || echo "${{ github.sha }}")
+          COMMIT_ID=$([ "${{ github.event_name }}" == "pull_request_review" ] && echo "${{ github.event.pull_request.head.sha }}" || echo "${{ github.sha }}")
           echo "Using Commit ID: $COMMIT_ID"
           echo "$GITHUB_REF"
           PR_ID=$(echo "$GITHUB_REF" | sed 's@refs/pull/\([0-9]\+\)/.*@\1@')
@@ -78,12 +105,12 @@ jobs:
         run: |
           echo "=== Task started at: $(date '+%Y-%m-%d %H:%M:%S') ==="
           PR_ID=${{ github.event.pull_request.number }}
-          BRANCH_NAME="open_merge/${PR_ID}"
+          BRANCH_NAME="open_merge_pre/${PR_ID}"
           REPOSITORY="${{ github.repository }}"
           COMMENT="internal source has been updated, please review the changes!"
           SOURCE="RTP"
           MAIN_BRANCH="main-internal"
-          COMMIT_ID=$([ "${{ github.event_name }}" == "pull_request" ] && echo "${{ github.event.pull_request.head.sha }}" || echo "${{ github.sha }}")
+          COMMIT_ID=$([ "${{ github.event_name }}" == "pull_request_review" ] && echo "${{ github.event.pull_request.head.sha }}" || echo "${{ github.sha }}")
           echo "BRANCH_NAME is $BRANCH_NAME"
 
           BRANCH_INFO=$(./get-branch-info.sh "${BRANCH_NAME}" "${REPOSITORY}" "${COMMIT_ID}")
@@ -124,6 +151,6 @@ jobs:
         if: steps.pre-check.outputs.skip_ci != 'true'
         run: |
           echo "=== Task started at: $(date '+%Y-%m-%d %H:%M:%S') ==="
-          COMMIT_ID=$([ "${{ github.event_name }}" == "pull_request" ] && echo "${{ github.event.pull_request.head.sha }}" || echo "${{ github.sha }}")
+          COMMIT_ID=$([ "${{ github.event_name }}" == "pull_request_review" ] && echo "${{ github.event.pull_request.head.sha }}" || echo "${{ github.sha }}")
           echo "Using Commit ID: $COMMIT_ID"
           ./get-CI-result.sh "$COMMIT_ID" "${{ secrets.CI_SECRET }}" "${{ github.repository }}"

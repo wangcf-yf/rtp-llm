@@ -80,7 +80,9 @@ grpc::Status LocalRpcServer::pollStreamOutput(grpc::ServerContext*             c
                                               WriterInterface*                 writer,
                                               std::shared_ptr<GenerateStream>& stream) {
     RTP_LLM_PROFILE_FUNCTION();
-    while (!stream->finished() || stream->hasOutput()) {
+    // 需要检查 !hasError(): 之前 finished() 表示完成且无错，现在 FINISHED 状态可能包含错误
+    // 如果流有错误，应该停止消费输出
+    while (stream->isActive() || stream->hasOutput()) {
         const auto result = stream->nextOutput();
         if (!result.ok()) {
             if (result.status().code() != ErrorCode::FINISHED) {
@@ -98,16 +100,16 @@ grpc::Status LocalRpcServer::pollStreamOutput(grpc::ServerContext*             c
                                       maga_init_params_.misc_config.aux_string,
                                       stream->specialTokens().eos_token_id);
         if (context->IsCancelled()) {
-            stream->cancel();
+            stream->reportError(ErrorCode::CANCELLED, "request cancelled by user");
             RTP_LLM_LOG_WARNING("request [%s] cancelled by user", request_key.c_str());
             return grpc::Status(grpc::StatusCode::CANCELLED, "request cancelled by user");
         }
         if (!writer->Write(outputs_pb)) {
-            stream->cancel();
+            stream->reportError(ErrorCode::CANCELLED, "write outputs pb failed");
             RTP_LLM_LOG_WARNING("request [%s] write outputs pb failed", request_key.c_str());
             return grpc::Status(grpc::StatusCode::INTERNAL, "request write outputs pb failed");
         }
-        if (stream->needRemoteGenerate()) {
+        if (stream->hasEvent(StreamEvents::NeedRemoteGenerate)) {
             break;
         }
         if (stream->queryPdSep()) {
@@ -130,8 +132,10 @@ grpc::Status LocalRpcServer::GenerateStreamCall(grpc::ServerContext*            
     auto generate_context =
         GenerateContext(request_id, request->generate_config().timeout_ms(), context, metrics_reporter_, meta_);
     auto input = QueryConverter::transQuery(request);
-    if (applyTimelineGate(
-            generate_context.request_key, input->generate_config->gen_timeline, input->generate_config->profile_step)) {
+    if (applyTimelineGate(generate_context.request_key,
+                          input->generate_config->gen_timeline,
+                          input->generate_config->profile_step,
+                          input->generate_config->profile_trace_name)) {
         input->generate_config->gen_timeline = true;
     }
 
@@ -159,14 +163,18 @@ grpc::Status LocalRpcServer::GenerateStreamCall(grpc::ServerContext*            
     return generate_context.error_status;
 }
 
-bool LocalRpcServer::applyTimelineGate(const std::string& request_key, bool request_timeline, int profile_step) {
+bool LocalRpcServer::applyTimelineGate(const std::string& request_key,
+                                       bool               request_timeline,
+                                       int                profile_step,
+                                       const std::string& profile_trace_name) {
     const bool force_timeline = engine_->isTimelineProfilingEnabled();
-    RTP_LLM_LOG_DEBUG("request [%s] timeline gate, force_timeline=%d, request_timeline=%d",
+    RTP_LLM_LOG_DEBUG("request [%s] timeline gate, force_timeline=%d, request_timeline=%d, trace_name=%s",
                       request_key.c_str(),
                       int(force_timeline),
-                      int(request_timeline));
+                      int(request_timeline),
+                      profile_trace_name.c_str());
     if (!force_timeline && request_timeline) {
-        engine_->startTimelineProfiling("", 0, profile_step);
+        engine_->startTimelineProfiling(profile_trace_name, 0, profile_step);
     }
     return force_timeline;
 }
